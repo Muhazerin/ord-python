@@ -7,15 +7,14 @@ name = "ord-python"
 version = "0.0.1"
 description = "Open Resource Discovery (ORD) plugin for FastAPI and FastMCP services."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 license = { file = "LICENSE" }
 authors = [{ name = "Muhazerin" }]
 keywords = ["ord", "open-resource-discovery", "fastapi", "fastmcp", "sap"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "License :: OSI Approved :: Apache Software License",
 ]
 dependencies = [
@@ -60,7 +59,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
