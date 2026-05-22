@@ -1,0 +1,18 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 90%
+        threshold: 1%
+    patch:
+      default:
+        target: 90%
+        threshold: 1%
+
+flag_management:
+  default_rules:
+    carryforward: true
+
+comment:
+  layout: "header, diff, flags, files"
+  require_changes: false
