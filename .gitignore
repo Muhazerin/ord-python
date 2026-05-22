@@ -20,6 +20,7 @@ env/
 .pytest_cache/
 .coverage
 coverage.xml
+junit.xml
 htmlcov/
 .tox/
 
