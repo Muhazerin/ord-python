@@ -60,6 +60,51 @@ class TestAccessStrategy:
             AccessStrategy(type="open", unknownField="x")  # type: ignore[call-arg]
 
 
+class TestValidationModes:
+    """Regression: callers must be able to construct models from BOTH
+    snake_case attribute names and camelCase aliases.
+
+    This locks in the contract so a future ``model_config`` change
+    can't silently disable one of the two validation modes (we rely on
+    snake_case for Python ergonomics and on alias acceptance for
+    round-trip ``model_validate(data_from_ord_dict)``).
+    """
+
+    def test_can_construct_from_snake_case_attribute_name(self):
+        rd = ResourceDefinition(
+            type="openapi-v3",
+            media_type="application/json",
+            url="/openapi.json",
+            access_strategies=[AccessStrategy(type="open")],
+        )
+        assert rd.media_type == "application/json"
+
+    def test_can_construct_from_camelcase_alias(self):
+        # Equivalent to feeding the wire-shaped dict back through
+        # model_validate — useful when parsing inbound ORD documents.
+        rd = ResourceDefinition.model_validate(
+            {
+                "type": "openapi-v3",
+                "mediaType": "application/json",
+                "url": "/openapi.json",
+                "accessStrategies": [{"type": "open"}],
+            }
+        )
+        assert rd.media_type == "application/json"
+
+    def test_round_trips_through_to_ord_dict(self):
+        # The wire form must be valid input to model_validate so consumers
+        # can persist + re-parse without rewriting field names.
+        original = ResourceDefinition(
+            type="openapi-v3",
+            media_type="application/json",
+            url="/openapi.json",
+            access_strategies=[AccessStrategy(type="open")],
+        )
+        re_parsed = ResourceDefinition.model_validate(original.to_ord_dict())
+        assert re_parsed == original
+
+
 class TestResourceDefinition:
     def _open_strategy(self) -> AccessStrategy:
         return AccessStrategy(type="open")

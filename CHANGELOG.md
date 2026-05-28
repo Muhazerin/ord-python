@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Bumped Pydantic floor from `>=2.6` to `>=2.11` and replaced `populate_by_name=True` with `validate_by_name=True` + `validate_by_alias=True` on `_ORDModel`. Pydantic recommends the new pair as of v2.11; `populate_by_name` is slated for deprecation in v3. No user-visible behavior change — both snake_case attribute names and camelCase aliases still validate. ([#6](https://github.com/Muhazerin/ord-python/pull/6))
 - `ResourceDefinition.media_type` is now required, matching the ORD spec — emitted documents would have failed JSON Schema validation without it. ([#5](https://github.com/Muhazerin/ord-python/pull/5))
 
 [Unreleased]: https://github.com/Muhazerin/ord-python/compare/0686200...HEAD
