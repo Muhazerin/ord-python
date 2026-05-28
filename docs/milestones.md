@@ -58,9 +58,16 @@ Merged in [PR #5](https://github.com/Muhazerin/ord-python/pull/5).
 - [x] Validation is opt-in — model construction stays cheap, no auto-validation in `__init__`.
 - [x] Reconciled `ResourceDefinition.media_type` to required; the spec demands it so consumers know which parser to apply.
 
-## Step 4 — FastAPI adapter (MVP) `[ ]`
+## Step 4 — FastAPI adapter (MVP) `[x]`
 
-Given a `FastAPI` instance, emit one `apiProtocol: "rest"` apiResource pointing at `/openapi.json`. Test against an `examples/fastapi_app/`.
+Merged in [PR #7](https://github.com/Muhazerin/ord-python/pull/7).
+
+- [x] `ord.adapters.fastapi.apiresource_from_fastapi(app, *, ord_id, title, short_description, description, part_of_package, version, visibility, release_status, openapi_url=None)` returns one `APIResource` with `apiProtocol="rest"` and a single `openapi-v3` `resourceDefinitions` entry.
+- [x] OpenAPI URL resolution: explicit `openapi_url` kwarg → `app.openapi_url` → raise `ValueError` if both are absent. The adapter never fabricates a URL FastAPI doesn't serve.
+- [x] Caller supplies all 8 spec-required APIResource fields explicitly. The adapter doesn't guess `visibility`/`releaseStatus`/`partOfPackage` from FastAPI — those carry meaning FastAPI knows nothing about.
+- [x] `examples/fastapi_app/` (main.py + emit_ord.py + README) demonstrates the end-to-end flow and prints a validated ORD document.
+- [x] Test that emitted documents survive `ORDDocument.validate_against_spec()` against the official JSON Schema.
+- [x] FastAPI added to `[project.optional-dependencies].dev`; not re-exported from `ord.adapters` to keep `import ord.adapters` free of optional-dep imports.
 
 ## Step 5 — `server.py` discovery endpoints `[ ]`
 
