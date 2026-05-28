@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Core ORD models in `ord.core` (`AccessStrategy`, `ResourceDefinition`, `APIResource`, `ORDDocument`) as Pydantic v2 BaseModels. Python attributes are snake_case; spec-shaped JSON output is produced via `to_ord_dict()` / `to_ord_json()` helpers (camelCase aliases, `None` values stripped). `APIResource.ordId` is regex-validated against the spec; `visibility`, `releaseStatus`, and the document `openResourceDiscovery` version are constrained to spec enum values. ([#3](https://github.com/Muhazerin/ord-python/pull/3))
 - Project scaffolding: `pyproject.toml` (Pydantic v2, optional `fastapi` / `fastmcp` extras, dev tools), `src/ord/{core,adapters,auth}/` package skeleton, smoke test, README, `.gitignore`, project-level `CLAUDE.md`, handoff doc. ([#1](https://github.com/Muhazerin/ord-python/pull/1))
 - GitHub Actions CI on Python 3.12: ruff lint + pytest with 90% branch coverage gate (enforced via `pyproject.toml` addopts and an explicit CI flag). ([#1](https://github.com/Muhazerin/ord-python/pull/1))
 - Codecov integration: coverage upload (`codecov/codecov-action@v4`) and Test Analytics (`codecov/test-results-action@v1`), with `codecov.yml` pinning 90% project + patch targets and carryforward. ([#1](https://github.com/Muhazerin/ord-python/pull/1))
