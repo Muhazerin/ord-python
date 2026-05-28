@@ -48,11 +48,13 @@ class ResourceDefinition(_ORDModel):
     Spec reference: ``resourceDefinitions`` array items on APIResource and
     EventResource. ``accessStrategies`` must contain at least one entry — a
     definition with no documented way to reach it is meaningless.
+    ``mediaType`` is required by the spec so consumers know which parser
+    to apply (e.g. OpenAPI 3 YAML vs JSON).
     """
 
     type: str
     custom_type: str | None = None
-    media_type: str | None = None
+    media_type: str
     url: str
     access_strategies: Annotated[list[AccessStrategy], Field(min_length=1)]
 
@@ -115,3 +117,15 @@ class ORDDocument(_ORDModel):
 
     open_resource_discovery: ORDSpecVersion = "1.15"
     api_resources: list[APIResource] | None = None
+
+    def validate_against_spec(self) -> None:
+        """Validate the wire-shaped form of this document against the ORD JSON Schema.
+
+        Convenience wrapper for :py:func:`ord.core.validation.validate_ord_document`
+        applied to ``self.to_ord_dict()``. Raises
+        :class:`~ord.core.validation.ORDValidationError` on failure. Imported
+        lazily to avoid a circular import between models and validation.
+        """
+        from ord.core.validation import validate_ord_document
+
+        validate_ord_document(self.to_ord_dict())

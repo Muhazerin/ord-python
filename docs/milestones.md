@@ -46,9 +46,17 @@ later steps need them.
 - [x] `_ORDModel` base class with `alias_generator=to_camel`, `populate_by_name=True`, `extra="forbid"`, plus `to_ord_dict()` / `to_ord_json()` helpers that default to `by_alias=True, exclude_none=True`.
 - [x] Re-exports from `ord.core` package.
 
-## Step 3 — JSON serialization + schema validation `[ ]`
+## Step 3 — JSON serialization + schema validation `[x]`
 
-Validate emitted documents against the official ORD JSON Schema (download from open-resource-discovery.org).
+Merged in [PR #5](https://github.com/Muhazerin/ord-python/pull/5).
+
+- [x] Vendored the official ORD JSON Schema at `src/ord/_spec/Document.schema.json` (Draft 7, ~440 KB). Source: <https://open-resource-discovery.org/spec-v1/interfaces/Document.schema.json>. Bundled into the wheel automatically by hatchling.
+- [x] `scripts/refresh_spec.py` to re-fetch the schema; `docs/vendored-schema.md` documents the source URL, license, and refresh procedure.
+- [x] `jsonschema>=4.21,<5` runtime dependency.
+- [x] `validate_ord_document(data)` and `ORDValidationError` in `ord.core`. Errors are collected (not first-error-and-bail), each with a JSON-Pointer-shaped `path` and a human-readable `message`.
+- [x] `ORDDocument.validate_against_spec()` convenience method that round-trips through `to_ord_dict()`.
+- [x] Validation is opt-in — model construction stays cheap, no auto-validation in `__init__`.
+- [x] Reconciled `ResourceDefinition.media_type` to required; the spec demands it so consumers know which parser to apply.
 
 ## Step 4 — FastAPI adapter (MVP) `[ ]`
 
