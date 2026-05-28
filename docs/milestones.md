@@ -30,9 +30,21 @@ Actually shipped:
 - [x] `README.md`, `.gitignore`, project-level `CLAUDE.md` (tests-first TDD rule).
 - [x] Branch protection on `main`: PR-only, required check `test (3.12)`, enforce-for-admins, force-push + delete blocked, conversation resolution required.
 
-## Step 2 — Build `core/` ORD model `[ ]`
+## Step 2 — Build `core/` ORD model `[x]`
 
-Pydantic v2 models for ORDDocument, APIResource, ResourceDefinition, AccessStrategy, Package, Product, ConsumptionBundle. Mirror cap-js/ord field names exactly.
+Merged in [PR #3](https://github.com/Muhazerin/ord-python/pull/3).
+
+Minimal vertical slice: just the four models needed to emit a valid
+single-apiResource ORD document. Package, Product, ConsumptionBundle,
+EventResource, EntityType, and IntegrationDependency are deferred until
+later steps need them.
+
+- [x] `AccessStrategy` (type, customType).
+- [x] `ResourceDefinition` (type, customType, mediaType, url, accessStrategies — non-empty).
+- [x] `APIResource` with all 9 spec-required fields (ordId regex-validated, visibility/releaseStatus enums); `partOfPackage` stored as a string ordId reference, Package model deferred.
+- [x] `ORDDocument` with `openResourceDiscovery` constrained to spec versions 1.0–1.15 (defaults to "1.15").
+- [x] `_ORDModel` base class with `alias_generator=to_camel`, `populate_by_name=True`, `extra="forbid"`, plus `to_ord_dict()` / `to_ord_json()` helpers that default to `by_alias=True, exclude_none=True`.
+- [x] Re-exports from `ord.core` package.
 
 ## Step 3 — JSON serialization + schema validation `[ ]`
 
