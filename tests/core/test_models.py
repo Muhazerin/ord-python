@@ -67,6 +67,7 @@ class TestResourceDefinition:
     def test_minimal_openapi_v3_definition(self):
         rd = ResourceDefinition(
             type="openapi-v3",
+            media_type="application/json",
             url="/openapi.json",
             access_strategies=[self._open_strategy()],
         )
@@ -75,17 +76,27 @@ class TestResourceDefinition:
         assert rd.access_strategies[0].type == "open"
 
     def test_required_fields(self):
-        # type, url, accessStrategies are required by spec.
+        # type, mediaType, url, accessStrategies are required by spec.
         with pytest.raises(ValidationError):
             ResourceDefinition()  # type: ignore[call-arg]
         with pytest.raises(ValidationError):
             ResourceDefinition(  # type: ignore[call-arg]
                 type="openapi-v3",
+                media_type="application/json",
                 url="/openapi.json",
             )
         with pytest.raises(ValidationError):
             ResourceDefinition(  # type: ignore[call-arg]
                 type="openapi-v3",
+                media_type="application/json",
+                access_strategies=[self._open_strategy()],
+            )
+        # mediaType is required (the spec demands it so consumers know which
+        # parser to apply).
+        with pytest.raises(ValidationError):
+            ResourceDefinition(  # type: ignore[call-arg]
+                type="openapi-v3",
+                url="/openapi.json",
                 access_strategies=[self._open_strategy()],
             )
 
@@ -95,6 +106,7 @@ class TestResourceDefinition:
         with pytest.raises(ValidationError):
             ResourceDefinition(
                 type="openapi-v3",
+                media_type="application/json",
                 url="/openapi.json",
                 access_strategies=[],
             )
@@ -118,6 +130,7 @@ class TestResourceDefinition:
         rd = ResourceDefinition(
             type="custom",
             custom_type="sap.damn:spec:agent-document-card:v1",
+            media_type="application/json",
             url="/schemas/card.json",
             access_strategies=[self._open_strategy()],
         )
@@ -199,6 +212,7 @@ class TestAPIResource:
     def test_serializes_camelcase_with_nested_resource_definitions(self):
         rd = ResourceDefinition(
             type="openapi-v3",
+            media_type="application/json",
             url="/openapi.json",
             access_strategies=[AccessStrategy(type="open")],
         )
@@ -211,6 +225,7 @@ class TestAPIResource:
         assert out["resourceDefinitions"] == [
             {
                 "type": "openapi-v3",
+                "mediaType": "application/json",
                 "url": "/openapi.json",
                 "accessStrategies": [{"type": "open"}],
             }
@@ -235,6 +250,7 @@ class TestORDDocument:
             resource_definitions=[
                 ResourceDefinition(
                     type="openapi-v3",
+                    media_type="application/json",
                     url="/openapi.json",
                     access_strategies=[AccessStrategy(type="open")],
                 )
