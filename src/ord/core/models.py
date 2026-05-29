@@ -130,3 +130,45 @@ class ORDDocument(_ORDModel):
         from ord.core.validation import validate_ord_document
 
         validate_ord_document(self.to_ord_dict())
+
+
+class V1DocumentDescription(_ORDModel):
+    """One entry in the Configuration manifest's ``documents`` array.
+
+    Spec reference: ``$defs/V1DocumentDescription`` on the Configuration
+    schema. ``accessStrategies`` is required by the spec — every advertised
+    document must declare how it can be accessed. ``perspective`` and
+    ``systemInstanceAware`` are not modeled today.
+    """
+
+    url: str
+    access_strategies: Annotated[list[AccessStrategy], Field(min_length=1)]
+
+
+class _OpenResourceDiscoveryV1(_ORDModel):
+    """Inner ``openResourceDiscoveryV1`` block of the Configuration manifest."""
+
+    documents: list[V1DocumentDescription]
+
+
+class ORDConfiguration(_ORDModel):
+    """The Configuration manifest served at /.well-known/open-resource-discovery.
+
+    Spec reference: https://open-resource-discovery.org/spec-v1/interfaces/Configuration.
+    Lists where the actual ORD documents can be retrieved. ``baseUrl`` is
+    optional; when omitted, ``documents[].url`` is interpreted relative to
+    the well-known endpoint's URL.
+    """
+
+    base_url: str | None = None
+    open_resource_discovery_v1: _OpenResourceDiscoveryV1
+
+    def validate_against_spec(self) -> None:
+        """Validate the wire-shaped form of this manifest against the ORD JSON Schema.
+
+        Mirror of :py:meth:`ORDDocument.validate_against_spec` but for the
+        Configuration schema.
+        """
+        from ord.core.validation import validate_ord_configuration
+
+        validate_ord_configuration(self.to_ord_dict())

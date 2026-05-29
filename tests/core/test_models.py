@@ -7,7 +7,14 @@ References:
 import pytest
 from pydantic import ValidationError
 
-from ord.core.models import AccessStrategy, APIResource, ORDDocument, ResourceDefinition
+from ord.core.models import (
+    AccessStrategy,
+    APIResource,
+    ORDConfiguration,
+    ORDDocument,
+    ResourceDefinition,
+    V1DocumentDescription,
+)
 
 
 class TestAccessStrategy:
@@ -340,3 +347,53 @@ class TestORDDocument:
         # the discovery endpoint when no adapter has populated anything yet.
         doc = ORDDocument()
         assert doc.to_ord_dict() == {"openResourceDiscovery": "1.15"}
+
+
+class TestORDConfiguration:
+    """The Configuration manifest served at /.well-known/open-resource-discovery."""
+
+    def _doc_description(self) -> V1DocumentDescription:
+        return V1DocumentDescription(
+            url="/ord/v1/documents/ord-document",
+            access_strategies=[AccessStrategy(type="open")],
+        )
+
+    def test_minimal_manifest(self):
+        cfg = ORDConfiguration(
+            open_resource_discovery_v1={"documents": [self._doc_description()]},
+        )
+        assert cfg.open_resource_discovery_v1.documents[0].url == (
+            "/ord/v1/documents/ord-document"
+        )
+
+    def test_serializes_camelcase(self):
+        cfg = ORDConfiguration(
+            open_resource_discovery_v1={"documents": [self._doc_description()]},
+        )
+        assert cfg.to_ord_dict() == {
+            "openResourceDiscoveryV1": {
+                "documents": [
+                    {
+                        "url": "/ord/v1/documents/ord-document",
+                        "accessStrategies": [{"type": "open"}],
+                    }
+                ]
+            }
+        }
+
+    def test_optional_base_url_is_emitted_when_set(self):
+        cfg = ORDConfiguration(
+            base_url="https://example.com",
+            open_resource_discovery_v1={"documents": [self._doc_description()]},
+        )
+        out = cfg.to_ord_dict()
+        assert out["baseUrl"] == "https://example.com"
+
+    def test_open_resource_discovery_v1_is_required(self):
+        with pytest.raises(ValidationError):
+            ORDConfiguration()  # type: ignore[call-arg]
+
+    def test_v1_document_description_requires_access_strategies(self):
+        # Per spec: every advertised document must declare how it's reached.
+        with pytest.raises(ValidationError):
+            V1DocumentDescription(url="/ord/v1/documents/ord-document")  # type: ignore[call-arg]

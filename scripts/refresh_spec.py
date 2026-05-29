@@ -1,15 +1,20 @@
-"""Refresh the vendored ORD JSON Schema.
+"""Refresh the vendored ORD JSON Schemas.
 
-Run when bumping the supported ORD spec version. Downloads the schema
-from the spec website (which serves a JSON-converted copy of the YAML
+Run when bumping the supported ORD spec version. Downloads the schemas
+from the spec website (which serves JSON-converted copies of the YAML
 that lives in the open-resource-discovery/specification repo) and writes
-it to src/ord/_spec/Document.schema.json.
+them to src/ord/_spec/.
 
-The source URL is intentionally unversioned: the spec site always serves
+Two schemas are vendored:
+
+- ``Document.schema.json`` — the ORD Document itself.
+- ``Configuration.schema.json`` — the manifest served at
+  ``/.well-known/open-resource-discovery``.
+
+The source URLs are intentionally unversioned: the spec site always serves
 the latest published spec. To audit which version was retrieved, this
 script reads back ``properties.openResourceDiscovery.enum`` from the
-downloaded schema and prints the highest value seen — that is the
-freshly-fetched spec version.
+Document schema and prints the highest value seen.
 
 Usage::
 
@@ -23,28 +28,40 @@ import sys
 import urllib.request
 from pathlib import Path
 
-SOURCE_URL = "https://open-resource-discovery.org/spec-v1/interfaces/Document.schema.json"
-TARGET = Path(__file__).resolve().parent.parent / "src" / "ord" / "_spec" / "Document.schema.json"
+SOURCES = {
+    "Document.schema.json": (
+        "https://open-resource-discovery.org/spec-v1/interfaces/Document.schema.json"
+    ),
+    "Configuration.schema.json": (
+        "https://open-resource-discovery.org/spec-v1/interfaces/Configuration.schema.json"
+    ),
+}
+SPEC_DIR = Path(__file__).resolve().parent.parent / "src" / "ord" / "_spec"
+
+
+def _fetch_and_write(name: str, url: str) -> dict:
+    print(f"Fetching {url}", file=sys.stderr)
+    with urllib.request.urlopen(url) as resp:  # noqa: S310 — known URL
+        raw = resp.read()
+    schema = json.loads(raw)
+    target = SPEC_DIR / name
+    target.write_text(json.dumps(schema, indent=2, sort_keys=False) + "\n")
+    print(f"  → {target.relative_to(Path.cwd())} ({len(raw):,} bytes)", file=sys.stderr)
+    return schema
 
 
 def main() -> int:
-    print(f"Fetching {SOURCE_URL}", file=sys.stderr)
-    with urllib.request.urlopen(SOURCE_URL) as resp:  # noqa: S310 — known URL
-        raw = resp.read()
-
-    # Round-trip through json to normalize formatting (and validate).
-    schema = json.loads(raw)
-    TARGET.parent.mkdir(parents=True, exist_ok=True)
-    TARGET.write_text(json.dumps(schema, indent=2, sort_keys=False) + "\n")
+    SPEC_DIR.mkdir(parents=True, exist_ok=True)
+    document_schema = _fetch_and_write("Document.schema.json", SOURCES["Document.schema.json"])
+    _fetch_and_write("Configuration.schema.json", SOURCES["Configuration.schema.json"])
 
     versions = (
-        schema.get("properties", {})
+        document_schema.get("properties", {})
         .get("openResourceDiscovery", {})
         .get("enum", [])
     )
     latest = versions[-1] if versions else "?"
-    print(f"Wrote {TARGET.relative_to(Path.cwd())} ({len(raw):,} bytes)", file=sys.stderr)
-    print(f"Spec versions in schema: {versions}", file=sys.stderr)
+    print(f"\nSpec versions in Document schema: {versions}", file=sys.stderr)
     print(f"Latest: {latest}", file=sys.stderr)
     return 0
 

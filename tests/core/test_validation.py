@@ -7,10 +7,18 @@ from pathlib import Path
 
 import pytest
 
-from ord.core.models import AccessStrategy, APIResource, ORDDocument, ResourceDefinition
+from ord.core.models import (
+    AccessStrategy,
+    APIResource,
+    ORDConfiguration,
+    ORDDocument,
+    ResourceDefinition,
+    V1DocumentDescription,
+)
 from ord.core.validation import (
     ORDValidationError,
     load_spec_schema,
+    validate_ord_configuration,
     validate_ord_document,
 )
 
@@ -48,21 +56,28 @@ class TestSchemaBundle:
         assert schema.get("$schema") == "http://json-schema.org/draft-07/schema#"
         assert "openResourceDiscovery" in schema.get("properties", {})
 
+    def test_configuration_schema_is_loadable(self):
+        schema = load_spec_schema("Configuration")
+        assert schema.get("$schema") == "http://json-schema.org/draft-07/schema#"
+        assert "openResourceDiscoveryV1" in schema.get("properties", {})
+
     def test_schema_is_cached(self):
         # load_spec_schema is hot-path-friendly; calling it repeatedly should
         # return the same object, not re-read disk every time.
         assert load_spec_schema() is load_spec_schema()
+        assert load_spec_schema("Configuration") is load_spec_schema("Configuration")
 
-    def test_schema_file_is_bundled(self):
-        # The vendored copy must travel with the package; otherwise wheels
+    def test_schema_files_are_bundled(self):
+        # The vendored copies must travel with the package; otherwise wheels
         # built and installed elsewhere would crash on first validate call.
         import ord  # noqa: PLC0415
 
-        schema_path = Path(ord.__file__).parent / "_spec" / "Document.schema.json"
-        assert schema_path.is_file()
-        # Smoke-check: file is valid JSON and tagged as Draft 7.
-        data = json.loads(schema_path.read_text())
-        assert data["$schema"] == "http://json-schema.org/draft-07/schema#"
+        spec_dir = Path(ord.__file__).parent / "_spec"
+        for name in ("Document.schema.json", "Configuration.schema.json"):
+            path = spec_dir / name
+            assert path.is_file(), f"{name} not bundled"
+            data = json.loads(path.read_text())
+            assert data["$schema"] == "http://json-schema.org/draft-07/schema#"
 
 
 class TestValidateOrdDocument:
@@ -150,3 +165,28 @@ class TestModelLevelValidate:
         # The call returns None; consumers detect failure by exception, not
         # by sentinel return value (consistent with Pydantic conventions).
         assert _well_formed_doc().validate_against_spec() is None
+
+
+class TestValidateOrdConfiguration:
+    def _well_formed(self) -> ORDConfiguration:
+        return ORDConfiguration(
+            open_resource_discovery_v1={
+                "documents": [
+                    V1DocumentDescription(
+                        url="/ord/v1/documents/ord-document",
+                        access_strategies=[AccessStrategy(type="open")],
+                    )
+                ],
+            },
+        )
+
+    def test_well_formed_manifest_validates(self):
+        validate_ord_configuration(self._well_formed().to_ord_dict())
+
+    def test_missing_open_resource_discovery_v1_raises(self):
+        with pytest.raises(ORDValidationError) as excinfo:
+            validate_ord_configuration({})
+        assert "openResourceDiscoveryV1" in str(excinfo.value)
+
+    def test_validate_against_spec_method_on_configuration(self):
+        self._well_formed().validate_against_spec()

@@ -69,9 +69,16 @@ Merged in [PR #7](https://github.com/Muhazerin/ord-python/pull/7).
 - [x] Test that emitted documents survive `ORDDocument.validate_against_spec()` against the official JSON Schema.
 - [x] FastAPI added to `[project.optional-dependencies].dev`; not re-exported from `ord.adapters` to keep `import ord.adapters` free of optional-dep imports.
 
-## Step 5 — `server.py` discovery endpoints `[ ]`
+## Step 5 — `server.py` discovery endpoints `[x]`
 
-FastAPI router that mounts `/.well-known/open-resource-discovery` and `/ord/v1/documents/ord-document`.
+Merged in [PR #8](https://github.com/Muhazerin/ord-python/pull/8).
+
+- [x] `ord.server.ord_router(document_provider, *, well_known_path, document_path, base_url)` returns a FastAPI `APIRouter` mounting `/.well-known/open-resource-discovery` (Configuration manifest) and `/ord/v1/documents/ord-document` (the ORD document).
+- [x] `document_provider` accepts an `ORDDocument` instance (resolved once) or a callable returning one (resolved per request).
+- [x] Vendored the Configuration JSON Schema at `src/ord/_spec/Configuration.schema.json`; `scripts/refresh_spec.py` updated to pull both schemas.
+- [x] `ORDConfiguration` and `V1DocumentDescription` Pydantic models, plus `validate_ord_configuration(data)` symmetric to `validate_ord_document(data)`. `load_spec_schema(name)` now disambiguates between the two.
+- [x] `examples/fastapi_app/main.py` mounts the router so `uvicorn main:app` exposes both discovery endpoints alongside the demo `/hello` route.
+- [x] TestClient end-to-end tests confirm both endpoints return spec-valid payloads.
 
 ## Step 6 — CLI `[ ]`
 
