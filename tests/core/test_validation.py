@@ -70,9 +70,9 @@ class TestSchemaBundle:
     def test_schema_files_are_bundled(self):
         # The vendored copies must travel with the package; otherwise wheels
         # built and installed elsewhere would crash on first validate call.
-        import ord  # noqa: PLC0415
+        import ord as ord_pkg  # noqa: PLC0415 — `ord` would shadow the builtin
 
-        spec_dir = Path(ord.__file__).parent / "_spec"
+        spec_dir = Path(ord_pkg.__file__).parent / "_spec"
         for name in ("Document.schema.json", "Configuration.schema.json"):
             path = spec_dir / name
             assert path.is_file(), f"{name} not bundled"
@@ -170,7 +170,7 @@ class TestModelLevelValidate:
 class TestValidateOrdConfiguration:
     def _well_formed(self) -> ORDConfiguration:
         return ORDConfiguration(
-            open_resource_discovery_v1={
+            open_resource_discovery_v1={  # type: ignore[arg-type]
                 "documents": [
                     V1DocumentDescription(
                         url="/ord/v1/documents/ord-document",
