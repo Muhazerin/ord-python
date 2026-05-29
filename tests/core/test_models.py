@@ -7,7 +7,14 @@ References:
 import pytest
 from pydantic import ValidationError
 
-from ord.core.models import AccessStrategy, APIResource, ORDDocument, ResourceDefinition
+from ord.core.models import (
+    AccessStrategy,
+    APIResource,
+    ORDConfiguration,
+    ORDDocument,
+    ResourceDefinition,
+    V1DocumentDescription,
+)
 
 
 class TestAccessStrategy:
@@ -315,13 +322,18 @@ class TestORDDocument:
 
     @pytest.mark.parametrize("version", ["1.0", "1.5", "1.15"])
     def test_accepts_supported_spec_versions(self, version: str):
-        doc = ORDDocument(open_resource_discovery=version)
+        # mypy can't narrow `version: str` back into the ORDSpecVersion
+        # Literal even though every parametrized value is in the literal set;
+        # the runtime check is what we're asserting.
+        doc = ORDDocument(open_resource_discovery=version)  # type: ignore[arg-type]
         assert doc.open_resource_discovery == version
 
     @pytest.mark.parametrize("version", ["0.9", "2.0", "1.16", "v1", ""])
     def test_rejects_unsupported_spec_versions(self, version: str):
+        # The off-spec values here are deliberately outside the Literal —
+        # we're asserting Pydantic rejects them at runtime.
         with pytest.raises(ValidationError):
-            ORDDocument(open_resource_discovery=version)
+            ORDDocument(open_resource_discovery=version)  # type: ignore[arg-type]
 
     def test_serializes_full_nested_structure(self):
         doc = ORDDocument(api_resources=[self._api_resource()])
@@ -340,3 +352,53 @@ class TestORDDocument:
         # the discovery endpoint when no adapter has populated anything yet.
         doc = ORDDocument()
         assert doc.to_ord_dict() == {"openResourceDiscovery": "1.15"}
+
+
+class TestORDConfiguration:
+    """The Configuration manifest served at /.well-known/open-resource-discovery."""
+
+    def _doc_description(self) -> V1DocumentDescription:
+        return V1DocumentDescription(
+            url="/ord/v1/documents/ord-document",
+            access_strategies=[AccessStrategy(type="open")],
+        )
+
+    def test_minimal_manifest(self):
+        cfg = ORDConfiguration(
+            open_resource_discovery_v1={"documents": [self._doc_description()]},
+        )
+        assert cfg.open_resource_discovery_v1.documents[0].url == (
+            "/ord/v1/documents/ord-document"
+        )
+
+    def test_serializes_camelcase(self):
+        cfg = ORDConfiguration(
+            open_resource_discovery_v1={"documents": [self._doc_description()]},
+        )
+        assert cfg.to_ord_dict() == {
+            "openResourceDiscoveryV1": {
+                "documents": [
+                    {
+                        "url": "/ord/v1/documents/ord-document",
+                        "accessStrategies": [{"type": "open"}],
+                    }
+                ]
+            }
+        }
+
+    def test_optional_base_url_is_emitted_when_set(self):
+        cfg = ORDConfiguration(
+            base_url="https://example.com",
+            open_resource_discovery_v1={"documents": [self._doc_description()]},
+        )
+        out = cfg.to_ord_dict()
+        assert out["baseUrl"] == "https://example.com"
+
+    def test_open_resource_discovery_v1_is_required(self):
+        with pytest.raises(ValidationError):
+            ORDConfiguration()  # type: ignore[call-arg]
+
+    def test_v1_document_description_requires_access_strategies(self):
+        # Per spec: every advertised document must declare how it's reached.
+        with pytest.raises(ValidationError):
+            V1DocumentDescription(url="/ord/v1/documents/ord-document")  # type: ignore[call-arg]

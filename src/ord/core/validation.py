@@ -1,19 +1,25 @@
-"""Validate ORD documents against the official ORD JSON Schema.
+"""Validate ORD documents and configuration manifests against the official ORD JSON Schemas.
 
-The schema is vendored at ``src/ord/_spec/Document.schema.json`` and refreshed
-manually via ``scripts/refresh_spec.py`` (see ``docs/vendored-schema.md``).
-Validation is opt-in: nothing runs at model construction time, so building
-intermediate documents stays cheap. Call
-:py:func:`validate_ord_document` (or :py:meth:`ORDDocument.validate_against_spec`)
+Two schemas are vendored at ``src/ord/_spec/``:
+
+- ``Document.schema.json`` for full ORD documents (api/event/entity resources, ...).
+- ``Configuration.schema.json`` for the manifest served at
+  ``/.well-known/open-resource-discovery``.
+
+Both are refreshed manually via ``scripts/refresh_spec.py`` (see
+``docs/vendored-schema.md``). Validation is opt-in: nothing runs at model
+construction time, so building intermediate documents stays cheap. Call
+:py:func:`validate_ord_document` / :py:func:`validate_ord_configuration` (or
+:py:meth:`ORDDocument.validate_against_spec` / :py:meth:`ORDConfiguration.validate_against_spec`)
 when you want a spec compliance check.
 """
 
 from __future__ import annotations
 
 import json
-from functools import lru_cache
+from functools import cache
 from importlib.resources import files
-from typing import Any
+from typing import Any, cast
 
 from jsonschema import Draft7Validator
 
@@ -37,27 +43,24 @@ class ORDValidationError(ValueError):
         )
 
 
-@lru_cache(maxsize=1)
-def load_spec_schema() -> dict[str, Any]:
-    """Return the bundled ORD JSON Schema as a parsed dict.
+@cache
+def load_spec_schema(name: str = "Document") -> dict[str, Any]:
+    """Return one of the bundled ORD JSON Schemas as a parsed dict.
 
-    Cached for the lifetime of the process — the schema is ~440 KB and
-    unchanging at runtime.
+    ``name`` is the schema's stem — ``"Document"`` (default) or
+    ``"Configuration"``. Cached for the lifetime of the process; the schemas
+    are large-ish and unchanging at runtime.
     """
     schema_text = (
-        files("ord._spec").joinpath("Document.schema.json").read_text()
+        files("ord._spec").joinpath(f"{name}.schema.json").read_text()
     )
-    return json.loads(schema_text)
+    # json.loads returns Any; the spec files are JSON Schema documents whose
+    # top level is always a JSON object, so the cast is safe in practice.
+    return cast(dict[str, Any], json.loads(schema_text))
 
 
-def validate_ord_document(data: dict[str, Any]) -> None:
-    """Validate ``data`` against the ORD JSON Schema.
-
-    Returns ``None`` on success and raises :class:`ORDValidationError` on
-    failure. All schema violations are collected before raising — callers
-    don't have to fix-and-retry one error at a time.
-    """
-    validator = Draft7Validator(load_spec_schema())
+def _validate(data: dict[str, Any], schema_name: str) -> None:
+    validator = Draft7Validator(load_spec_schema(schema_name))
     errors = [
         {
             "path": "/".join(str(p) for p in err.absolute_path),
@@ -67,3 +70,23 @@ def validate_ord_document(data: dict[str, Any]) -> None:
     ]
     if errors:
         raise ORDValidationError(errors)
+
+
+def validate_ord_document(data: dict[str, Any]) -> None:
+    """Validate ``data`` against the ORD Document JSON Schema.
+
+    Returns ``None`` on success and raises :class:`ORDValidationError` on
+    failure. All schema violations are collected before raising — callers
+    don't have to fix-and-retry one error at a time.
+    """
+    _validate(data, "Document")
+
+
+def validate_ord_configuration(data: dict[str, Any]) -> None:
+    """Validate ``data`` against the ORD Configuration JSON Schema.
+
+    The Configuration manifest is the small document served at
+    ``/.well-known/open-resource-discovery`` listing where the full ORD
+    documents live. Same error semantics as :py:func:`validate_ord_document`.
+    """
+    _validate(data, "Configuration")
