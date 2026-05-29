@@ -17,6 +17,7 @@
   ],
   "words": [
     "addopts",
+    "apiresource",
     "asyncapi",
     "carryforward",
     "codecov",
@@ -39,10 +40,12 @@
     "pydantic",
     "pyproject",
     "pytest",
+    "refreshable",
     "ruff",
     "semver",
     "soap",
     "testpaths",
+    "uvicorn",
     "websocket",
     "wsdl"
   ]

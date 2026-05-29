@@ -322,13 +322,18 @@ class TestORDDocument:
 
     @pytest.mark.parametrize("version", ["1.0", "1.5", "1.15"])
     def test_accepts_supported_spec_versions(self, version: str):
-        doc = ORDDocument(open_resource_discovery=version)
+        # mypy can't narrow `version: str` back into the ORDSpecVersion
+        # Literal even though every parametrized value is in the literal set;
+        # the runtime check is what we're asserting.
+        doc = ORDDocument(open_resource_discovery=version)  # type: ignore[arg-type]
         assert doc.open_resource_discovery == version
 
     @pytest.mark.parametrize("version", ["0.9", "2.0", "1.16", "v1", ""])
     def test_rejects_unsupported_spec_versions(self, version: str):
+        # The off-spec values here are deliberately outside the Literal —
+        # we're asserting Pydantic rejects them at runtime.
         with pytest.raises(ValidationError):
-            ORDDocument(open_resource_discovery=version)
+            ORDDocument(open_resource_discovery=version)  # type: ignore[arg-type]
 
     def test_serializes_full_nested_structure(self):
         doc = ORDDocument(api_resources=[self._api_resource()])

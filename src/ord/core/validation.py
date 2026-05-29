@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 from functools import cache
 from importlib.resources import files
-from typing import Any
+from typing import Any, cast
 
 from jsonschema import Draft7Validator
 
@@ -54,7 +54,9 @@ def load_spec_schema(name: str = "Document") -> dict[str, Any]:
     schema_text = (
         files("ord._spec").joinpath(f"{name}.schema.json").read_text()
     )
-    return json.loads(schema_text)
+    # json.loads returns Any; the spec files are JSON Schema documents whose
+    # top level is always a JSON object, so the cast is safe in practice.
+    return cast(dict[str, Any], json.loads(schema_text))
 
 
 def _validate(data: dict[str, Any], schema_name: str) -> None:
