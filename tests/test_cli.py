@@ -162,3 +162,55 @@ class TestOrdBuild:
         assert rc != 0
         err = capsys.readouterr().err
         assert "FastAPI" in err
+
+    def test_app_without_colon_exits_nonzero(
+        self,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ):
+        # `app = "demo_pkg.main"` (no colon) — common typo.
+        # Hits the early ValueError in _resolve_app and is reformatted
+        # by main()'s (ImportError, TypeError, ValueError) arm.
+        (tmp_path / "pyproject.toml").write_text(
+            _PYPROJECT_TEMPLATE.format(app="demo_pkg.main")
+        )
+        rc = main(["build", "--pyproject", str(tmp_path / "pyproject.toml")])
+        assert rc != 0
+        err = capsys.readouterr().err
+        assert "module:attr" in err
+
+    def test_app_with_missing_attribute_exits_nonzero(
+        self,
+        project_dir: Path,
+        capsys: pytest.CaptureFixture[str],
+    ):
+        # Module imports fine but the named attribute doesn't exist.
+        # Hits the AttributeError → ImportError re-raise in _resolve_app.
+        body = (project_dir / "pyproject.toml").read_text().replace(
+            'app = "demo_pkg.main:app"', 'app = "demo_pkg.main:nonexistent"'
+        )
+        (project_dir / "pyproject.toml").write_text(body)
+
+        rc = main(["build", "--pyproject", str(project_dir / "pyproject.toml")])
+        assert rc != 0
+        err = capsys.readouterr().err
+        assert "nonexistent" in err
+
+    def test_invalid_field_in_tool_ord_surfaces_as_validation_error(
+        self,
+        project_dir: Path,
+        capsys: pytest.CaptureFixture[str],
+    ):
+        # visibility="secret" isn't in the spec enum. Pydantic raises a
+        # ValidationError during config load; main()'s ValidationError
+        # arm formats it with the "invalid [tool.ord] config" prefix.
+        body = (project_dir / "pyproject.toml").read_text().replace(
+            'visibility = "public"', 'visibility = "secret"'
+        )
+        (project_dir / "pyproject.toml").write_text(body)
+
+        rc = main(["build", "--pyproject", str(project_dir / "pyproject.toml")])
+        assert rc != 0
+        err = capsys.readouterr().err
+        assert "[tool.ord]" in err  # the prefix from the ValidationError arm
+        assert "visibility" in err  # Pydantic's field path
