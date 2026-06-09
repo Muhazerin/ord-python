@@ -80,9 +80,16 @@ Merged in [PR #8](https://github.com/Muhazerin/ord-python/pull/8).
 - [x] `examples/fastapi_app/main.py` mounts the router so `uvicorn main:app` exposes both discovery endpoints alongside the demo `/hello` route.
 - [x] TestClient end-to-end tests confirm both endpoints return spec-valid payloads.
 
-## Step 6 — CLI `[ ]`
+## Step 6 — CLI `[x]`
 
-`ord build --for <module>` equivalent of `cds build --for ord`. Generates JSON + companion artifacts into `gen/ord/`.
+Merged in [PR #10](https://github.com/Muhazerin/ord-python/pull/10).
+
+- [x] `ord` console script wired via `[project.scripts]`. One subcommand today: `ord build`.
+- [x] `[tool.ord]` config schema in `pyproject.toml`: `app = "module:attr"` + nested `[tool.ord.api_resource]` table holding the 8 spec-required APIResource fields. Validated by a Pydantic model with `extra="forbid"` so typos fail loudly.
+- [x] `ord build` resolves the app via `importlib`, runs `apiresource_from_fastapi`, validates against both vendored JSON Schemas, and writes `gen/ord/ord-document.json` + `gen/ord/well-known.json`.
+- [x] `--pyproject` and `--out` flags for non-default locations; relative `--out` paths anchor to the pyproject's directory.
+- [x] Hard error with sample config when `[tool.ord]` is missing — easy to copy-paste a fix.
+- [x] `examples/fastapi_app/pyproject.toml` demonstrates the config layout; example README documents `ord build`.
 
 ## Step 7 — FastMCP adapter `[ ]`
 
