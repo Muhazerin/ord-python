@@ -40,6 +40,9 @@ Homepage = "https://github.com/Muhazerin/ord-python"
 Issues = "https://github.com/Muhazerin/ord-python/issues"
 Specification = "https://open-resource-discovery.org/"
 
+[project.scripts]
+ord = "ord.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/ord"]
 
